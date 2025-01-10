@@ -4,3 +4,4 @@ from src.settings import settings
 
 client = AsyncIOMotorClient(settings.database_uri)
 db = client[settings.database_name]
+user_collection = db.users
