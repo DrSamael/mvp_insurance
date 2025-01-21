@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
 from bson import ObjectId
-from typing import Optional
 from typing_extensions import Annotated
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from pydantic.functional_validators import BeforeValidator
@@ -27,3 +27,8 @@ class UserBase(BaseModel):
 
 class UserOut(UserBase):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias='_id')
+
+
+class UserTokens(BaseModel):
+    access_token: str
+    refresh_token: str
