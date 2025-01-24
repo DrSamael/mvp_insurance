@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from typing import List
 
+from src.exceptions import USER_NOT_FOUND_EXCEPTION
 from .schemas import UserOut
 from .crud import retrieve_users, retrieve_user
 
@@ -16,5 +17,5 @@ async def list_users():
 async def show_user(user_id: str):
     user = await retrieve_user(user_id)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise USER_NOT_FOUND_EXCEPTION
     return user
