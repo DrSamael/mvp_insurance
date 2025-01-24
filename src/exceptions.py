@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 
 INVALID_LOGIN_DATA_EXCEPTION = HTTPException(
-    status_code=status.HTTP_400_BAD_REQUEST,
+    status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Incorrect email or password"
 )
 

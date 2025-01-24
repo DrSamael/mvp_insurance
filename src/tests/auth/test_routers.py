@@ -29,7 +29,7 @@ async def test_login_invalid_password(async_client, test_user_with_encrypted_pas
     }
     response = await async_client.post("/auth/login", data=login_data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == INVALID_LOGIN_DATA_EXCEPTION.detail
 
 
@@ -41,7 +41,7 @@ async def test_login_invalid_email(async_client, test_user_with_encrypted_passwo
     }
     response = await async_client.post("/auth/login", data=login_data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == INVALID_LOGIN_DATA_EXCEPTION.detail
 
 
