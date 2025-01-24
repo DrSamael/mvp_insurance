@@ -1,13 +1,13 @@
-from typing import Annotated, Union, Any
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, USER_NOT_FOUND_EXCEPTION
 from src.users.schemas import UserTokens, UserOut
-from src.users.crud import retrieve_user_by_email, retrieve_user
+from src.users.crud import retrieve_user_by_email
 from .utils import verify_password, create_token
-from .deps import get_current_user, validate_token
+from .deps import get_current_user, validate_refresh_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,17 +29,13 @@ async def login(data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
 
 @router.get("/refresh-token", response_model=UserTokens)
-async def refresh_access_token(request: Request):
-    refresh_token = request.headers.get('refresh-token')
-    token_data = await validate_token(refresh_token, 'refresh_token')
-    user: Union[dict[str, Any], None] = await retrieve_user(token_data['sub'])
-
-    if user is None:
+async def refresh_access_token(current_user: UserOut = Depends(validate_refresh_token)):
+    if current_user is None:
         raise USER_NOT_FOUND_EXCEPTION
 
     return {
-        "access_token": await create_token(user['_id'], None, 'access_token'),
-        "refresh_token": await create_token(user['_id'], None, 'refresh_token')
+        "access_token": await create_token(current_user['_id'], None, 'access_token'),
+        "refresh_token": await create_token(current_user['_id'], None, 'refresh_token')
     }
 
 

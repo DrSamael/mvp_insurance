@@ -53,14 +53,17 @@ async def test_login_blank_data(async_client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_get_me_successful(async_client, test_user, test_current_user_super_admin):
-    response = await async_client.get("/auth/me")
+async def test_get_me_successful(async_client, test_user):
+    access_token = await create_token(test_user["_id"], None, 'access_token')
+    response = await async_client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"})
     result_user = response.json()
 
     assert response.status_code == status.HTTP_200_OK
+
+    test_user['_id'] = str(test_user['_id'])
     for key in test_user:
         if key != 'password':
-            assert result_user[key] == result_user[key]
+            assert test_user[key] == result_user[key]
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -71,9 +74,18 @@ async def test_get_me_unauthorized(async_client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_get_me_invalid_user_id(async_client):
+    access_token = await create_token(ObjectId(), None, 'access_token')
+    response = await async_client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_successful(async_client, test_user):
     refresh_token = await create_token(test_user["_id"], 15, 'refresh_token')
-    response = await async_client.get("/auth/refresh-token", headers={"refresh-token": refresh_token})
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {refresh_token}"})
 
     assert response.status_code == status.HTTP_200_OK
     result = response.json()
@@ -86,22 +98,21 @@ async def test_refresh_token_blank(async_client):
     response = await async_client.get("/auth/refresh-token")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_invalid_user_id(async_client):
     refresh_token = await create_token(ObjectId(), 15, 'refresh_token')
-    response = await async_client.get("/auth/refresh-token", headers={"refresh-token": refresh_token})
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {refresh_token}"})
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == USER_NOT_FOUND_EXCEPTION.detail
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_expired(async_client, test_user):
     expired_token = await create_token(test_user["_id"], -15, 'refresh_token')
-    response = await async_client.get("/auth/refresh-token", headers={"refresh-token": expired_token})
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {expired_token}"})
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == TOKEN_EXPIRE_EXCEPTION.detail
@@ -109,8 +120,7 @@ async def test_refresh_token_expired(async_client, test_user):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_invalid(async_client):
-    invalid_token = "invalid_refresh_token"
-    response = await async_client.get("/auth/refresh-token", headers={"refresh-token": invalid_token})
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": "Bearer invalid_refresh_token"})
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail

@@ -8,3 +8,7 @@
 ### Create admin user
 
 python -m src.seed
+
+### Run the tests and generate a coverage report
+
+pytest --cov --cov-report=html

@@ -17,3 +17,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise CREDENTIALS_INVALID_EXCEPTION
     return user
+
+
+async def validate_refresh_token(refresh_token: str = Depends(oauth2_scheme)):
+    token_data = await validate_token(refresh_token, 'refresh_token')
+    # blacklist check
+    user: Union[dict[str, Any], None] = await retrieve_user(token_data["sub"])
+
+    if user is None:
+        raise CREDENTIALS_INVALID_EXCEPTION
+    return user
