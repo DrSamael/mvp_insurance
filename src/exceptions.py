@@ -21,3 +21,9 @@ TOKEN_EXPIRE_EXCEPTION = HTTPException(
     detail="Token expired",
     headers={'WWW-Authenticate': 'Bearer'},
 )
+
+TOKEN_BLACKLISTED_EXCEPTION = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Token blacklisted",
+    headers={'WWW-Authenticate': 'Bearer'},
+)
