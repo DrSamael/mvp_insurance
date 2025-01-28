@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, USER_NOT_FOUND_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION
+from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION
 from src.users.schemas import UserTokens, UserOut
 from src.users.crud import retrieve_user_by_email
 from .utils import verify_password, create_token, add_blacklist_token
@@ -31,8 +31,6 @@ async def login(data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 @router.get("/refresh-token", response_model=UserTokens)
 async def refresh_access_token(current_user: UserOut = Depends(validate_refresh_token),
                                token: str = Depends(get_user_token)):
-    if current_user is None:
-        raise USER_NOT_FOUND_EXCEPTION
     await add_blacklist_token(token, current_user["_id"])
 
     return {
@@ -48,10 +46,9 @@ async def get_me(current_user: UserOut = Depends(get_current_user)):
 
 @router.get("/logout")
 async def logout(current_user: UserOut = Depends(validate_refresh_token), token: str = Depends(get_user_token)):
-    if current_user:
-        try:
-            await add_blacklist_token(token, current_user["_id"])
-            return {"detail": "Successfully logged out"}
-        except:
-            raise CREDENTIALS_INVALID_EXCEPTION
-    raise CREDENTIALS_INVALID_EXCEPTION
+    try:
+        await add_blacklist_token(token, current_user["_id"])
+        return {"detail": "Successfully logged out"}
+    except:
+        raise CREDENTIALS_INVALID_EXCEPTION
+

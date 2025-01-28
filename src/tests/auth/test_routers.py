@@ -2,8 +2,8 @@ import pytest
 from fastapi import status
 
 from src.tests.fixtures import *
-from src.auth.utils import create_token
-from src.exceptions import (INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION, USER_NOT_FOUND_EXCEPTION,
+from src.auth.utils import create_token, add_blacklist_token
+from src.exceptions import (INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION, TOKEN_BLACKLISTED_EXCEPTION,
                             TOKEN_EXPIRE_EXCEPTION)
 
 
@@ -84,7 +84,7 @@ async def test_get_me_invalid_user_id(async_client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_successful(async_client, test_user):
-    refresh_token = await create_token(test_user["_id"], 15, 'refresh_token')
+    refresh_token = await create_token(test_user["_id"], None, 'refresh_token')
     response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {refresh_token}"})
 
     assert response.status_code == status.HTTP_200_OK
@@ -119,8 +119,70 @@ async def test_refresh_token_expired(async_client, test_user):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_refresh_token_blacklisted(async_client, test_user):
+    token = await create_token(test_user["_id"], None, 'refresh_token')
+    await add_blacklist_token(token, test_user["_id"])
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == TOKEN_BLACKLISTED_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_invalid(async_client):
     response = await async_client.get("/auth/refresh-token", headers={"Authorization": "Bearer invalid_refresh_token"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_successful(async_client, test_user):
+    refresh_token = await create_token(test_user["_id"], None, 'refresh_token')
+    response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {refresh_token}"})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["detail"] == "Successfully logged out"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_token_blank(async_client):
+    response = await async_client.get("/auth/logout")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_invalid_user_id(async_client):
+    refresh_token = await create_token(ObjectId(), None, 'refresh_token')
+    response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {refresh_token}"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_token_expired(async_client, test_user):
+    expired_token = await create_token(test_user["_id"], -15, 'refresh_token')
+    response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {expired_token}"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == TOKEN_EXPIRE_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_token_blacklisted(async_client, test_user):
+    token = await create_token(test_user["_id"], None, 'refresh_token')
+    await add_blacklist_token(token, test_user["_id"])
+    response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == TOKEN_BLACKLISTED_EXCEPTION.detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_logout_token_invalid(async_client):
+    response = await async_client.get("/auth/logout", headers={"Authorization": "Bearer invalid_refresh_token"})
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == CREDENTIALS_INVALID_EXCEPTION.detail
