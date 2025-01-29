@@ -6,6 +6,8 @@ import bcrypt
 
 from src.settings import settings
 from src.exceptions import TOKEN_EXPIRE_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION
+from .crud import retrieve_blacklisted_token, add_blacklisted_token
+from .schemas import BlacklistedToken
 
 TokenType = Literal["access_token", "refresh_token"]
 
@@ -65,3 +67,18 @@ async def validate_token(token: str, token_type: TokenType):
         raise TOKEN_EXPIRE_EXCEPTION
     except jwt.exceptions.InvalidTokenError:
         raise CREDENTIALS_INVALID_EXCEPTION
+
+
+async def add_blacklist_token(token: str, user_id: Any):
+    payload = await validate_token(token, "refresh_token")
+    blacklisted_token = BlacklistedToken(user_id=user_id,
+                                         token=token,
+                                         expires_at=datetime.fromtimestamp(payload['exp']))
+
+    await add_blacklisted_token(dict(blacklisted_token))
+    return True
+
+
+async def check_blacklist_token(token: str):
+    result = await retrieve_blacklisted_token(token)
+    return result

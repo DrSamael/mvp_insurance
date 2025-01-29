@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, USER_NOT_FOUND_EXCEPTION
+from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION
 from src.users.schemas import UserTokens, UserOut
 from src.users.crud import retrieve_user_by_email
-from .utils import verify_password, create_token
-from .deps import get_current_user, validate_refresh_token
+from .utils import verify_password, create_token, add_blacklist_token
+from .deps import get_current_user, validate_refresh_token, get_user_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,9 +29,9 @@ async def login(data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
 
 @router.get("/refresh-token", response_model=UserTokens)
-async def refresh_access_token(current_user: UserOut = Depends(validate_refresh_token)):
-    if current_user is None:
-        raise USER_NOT_FOUND_EXCEPTION
+async def refresh_access_token(current_user: UserOut = Depends(validate_refresh_token),
+                               token: str = Depends(get_user_token)):
+    await add_blacklist_token(token, current_user["_id"])
 
     return {
         "access_token": await create_token(current_user['_id'], None, 'access_token'),
@@ -42,3 +42,13 @@ async def refresh_access_token(current_user: UserOut = Depends(validate_refresh_
 @router.get('/me', summary="Get details of currently logged in user", response_model=UserOut)
 async def get_me(current_user: UserOut = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/logout")
+async def logout(current_user: UserOut = Depends(validate_refresh_token), token: str = Depends(get_user_token)):
+    try:
+        await add_blacklist_token(token, current_user["_id"])
+        return {"detail": "Successfully logged out"}
+    except:
+        raise CREDENTIALS_INVALID_EXCEPTION
+
