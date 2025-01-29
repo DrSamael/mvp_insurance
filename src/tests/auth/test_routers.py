@@ -121,9 +121,10 @@ async def test_refresh_token_expired(async_client, test_user):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_blacklisted(async_client, test_user):
     token = await create_token(test_user["_id"], None, 'refresh_token')
-    await add_blacklist_token(token, test_user["_id"])
     response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == status.HTTP_200_OK
 
+    response = await async_client.get("/auth/refresh-token", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == TOKEN_BLACKLISTED_EXCEPTION.detail
 
@@ -173,9 +174,10 @@ async def test_logout_token_expired(async_client, test_user):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_logout_token_blacklisted(async_client, test_user):
     token = await create_token(test_user["_id"], None, 'refresh_token')
-    await add_blacklist_token(token, test_user["_id"])
     response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == status.HTTP_200_OK
 
+    response = await async_client.get("/auth/logout", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == TOKEN_BLACKLISTED_EXCEPTION.detail
 
