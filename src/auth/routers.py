@@ -1,10 +1,9 @@
-from typing import Annotated
-
 from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
 
+from src.settings import settings
 from src.exceptions import INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION
 from src.users.schemas import UserTokens, UserOut
+from src.auth.schemas import LoginRequest
 from src.users.crud import retrieve_user_by_email
 from .utils import verify_password, create_token, add_blacklist_token
 from .deps import get_current_user, validate_refresh_token, get_user_token
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post('/login', response_model=UserTokens)
-async def login(data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def login(data: LoginRequest):
     user = await retrieve_user_by_email(data.username)
     if user is None:
         raise INVALID_LOGIN_DATA_EXCEPTION
@@ -22,9 +21,10 @@ async def login(data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     if not await verify_password(data.password, hashed_pass):
         raise INVALID_LOGIN_DATA_EXCEPTION
 
+    expires_delta = float(settings.refresh_token_remember_expire_minutes) if data.remember_me else None
     return {
         "access_token": await create_token(user['_id'], None, "access_token"),
-        "refresh_token": await create_token(user['_id'], None, "refresh_token")
+        "refresh_token": await create_token(user['_id'], expires_delta, "refresh_token")
     }
 
 
