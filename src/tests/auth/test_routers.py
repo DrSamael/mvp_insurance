@@ -2,7 +2,7 @@ import pytest
 from fastapi import status
 
 from src.tests.fixtures import *
-from src.auth.utils import create_token, add_blacklist_token
+from src.auth.utils import create_token
 from src.exceptions import (INVALID_LOGIN_DATA_EXCEPTION, CREDENTIALS_INVALID_EXCEPTION, TOKEN_BLACKLISTED_EXCEPTION,
                             TOKEN_EXPIRE_EXCEPTION)
 
@@ -13,12 +13,11 @@ async def test_login_successful(async_client, test_user_with_encrypted_password)
         "username": test_user_with_encrypted_password["email"],
         "password": "123123"
     }
-    response = await async_client.post("/auth/login", data=login_data)
+    response = await async_client.post("/auth/login", json=login_data)
 
     assert response.status_code == status.HTTP_200_OK
-    result = response.json()
-    assert "access_token" in result
-    assert "refresh_token" in result
+    assert "access_token" in response.json()
+    assert "refresh_token" in response.json()
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -27,7 +26,7 @@ async def test_login_invalid_password(async_client, test_user_with_encrypted_pas
         "username": test_user_with_encrypted_password["email"],
         "password": "wrong_password"
     }
-    response = await async_client.post("/auth/login", data=login_data)
+    response = await async_client.post("/auth/login", json=login_data)
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == INVALID_LOGIN_DATA_EXCEPTION.detail
@@ -39,7 +38,7 @@ async def test_login_invalid_email(async_client, test_user_with_encrypted_passwo
         "username": 'wrong_email',
         "password": "123123"
     }
-    response = await async_client.post("/auth/login", data=login_data)
+    response = await async_client.post("/auth/login", json=login_data)
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == INVALID_LOGIN_DATA_EXCEPTION.detail

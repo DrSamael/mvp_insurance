@@ -17,3 +17,9 @@ class BlacklistedToken(BaseModel):
     user_id: PyObjectId
     expires_at: Optional[datetime] = Field(default=None)
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    remember_me: Optional[bool] = False

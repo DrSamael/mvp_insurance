@@ -15,5 +15,6 @@ class AppSettings(BaseSettings):
     algorithm: str = os.getenv("ALGORITHM")
     access_token_expire_minutes: str = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_minutes: str = os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES")
+    refresh_token_remember_expire_minutes: str = os.getenv("REFRESH_TOKEN_REMEMBER_EXPIRE_MINUTES")
 
     blacklisted_token_cleanup_interval: str = os.getenv("BLACKLISTED_TOKEN_CLEANUP_INTERVAL")
