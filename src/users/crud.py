@@ -27,3 +27,10 @@ async def retrieve_users():
     async for user in cursor:
         users.append(UserOut(**user))
     return users
+
+
+async def update_user(user_id: str, data: dict):
+    updated_user = await user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": data})
+    if updated_user:
+        return await retrieve_user(user_id)
+    return None

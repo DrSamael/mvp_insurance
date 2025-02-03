@@ -20,13 +20,20 @@ class UserBase(BaseModel):
     last_name: str = Field(max_length=50)
     role: UserRoles
     date_of_birth: Optional[datetime] = Field(default=None)
-    phone: Optional[int] = Field(default=None)
+    phone: Optional[str] = Field(default=None)
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = Field(default_factory=datetime.now)
 
 
 class UserOut(UserBase):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias='_id')
+
+
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, max_length=50)
+    last_name: Optional[str] = Field(None, max_length=50)
+    phone: Optional[str] = Field(None, max_length=15)
+    date_of_birth: Optional[datetime] = None
 
 
 class UserTokens(BaseModel):
